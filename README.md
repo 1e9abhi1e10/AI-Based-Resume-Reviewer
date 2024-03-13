@@ -1,6 +1,6 @@
 <p><small>Best View in <a href="https://github.com/settings/appearance">Light Mode</a> and Desktop Site (Recommended)</small></p><br/>
 
-<div align="center">
+<div align="left">
   <h1> 📥 AI BASED RESUME REVIEWER 📤 </h1>
   <p>A Tool for Resume Analysis, Predictions and Recommendations</p>
 
