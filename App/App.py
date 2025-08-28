@@ -298,7 +298,12 @@ def run():
         sec_token = secrets.token_urlsafe(12)
         host_name = socket.gethostname()
         ip_add = socket.gethostbyname(host_name)
-        dev_user = os.getlogin()
+        # Resolve username safely in container/cloud (os.getlogin can fail without a TTY)
+        try:
+            dev_user = os.getlogin()
+        except Exception:
+            import getpass
+            dev_user = os.getenv('USER') or os.getenv('USERNAME') or getpass.getuser() or 'unknown'
         os_name_ver = platform.system() + " " + platform.release()
         g = geocoder.ip('me')
         latlong = g.latlng
