@@ -53,6 +53,7 @@ from pyresparser.resume_parser import ResumeParser
 import pyresparser.utils as pr_utils
 import pyresparser.constants as pr_cs
 from Courses import ds_course,web_course,android_course,ios_course,uiux_course,resume_videos,interview_videos
+from streamlit_pdf_viewer import pdf_viewer
 
 
 ###### Preprocessing functions ######
@@ -79,21 +80,13 @@ def pdf_reader(file):
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGO_DIR = os.path.join(BASE_DIR, 'Logo')
 
-# show uploaded file path to view pdf_display with fallbacks for strict browsers
+# show uploaded file path to view pdf_display using PDF.js-based viewer (works across Chrome/Brave)
 def show_pdf(file_path):
     try:
         with open(file_path, "rb") as f:
             pdf_bytes = f.read()
-        base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
-        # Try embed (may be blocked by some browsers)
-        html = f"""
-        <embed src="data:application/pdf;base64,{base64_pdf}#view=FitH" 
-               type="application/pdf" width="100%" height="800px" />
-        """
-        st.components.v1.html(html, height=820)
-        # Always offer download as a fallback
+        pdf_viewer(pdf_bytes, height=820, key=f"viewer_{os.path.basename(file_path)}")
         st.download_button("Download PDF", data=pdf_bytes, file_name=os.path.basename(file_path), mime="application/pdf")
-        st.caption("If the preview is blocked by your browser (e.g., Brave Shields), use the Download button above to open locally.")
     except Exception:
         st.info("Unable to preview PDF inline. Use the Download button to view it.")
         try:
