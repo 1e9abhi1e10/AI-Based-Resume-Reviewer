@@ -18,7 +18,11 @@ class ResumeParser(object):
     ):
         # Load English language model and custom spaCy model
         nlp = spacy.load('en_core_web_sm')
-        custom_nlp = spacy.load(os.path.dirname(os.path.abspath(__file__)))
+        try:
+            custom_nlp = spacy.load(os.path.dirname(os.path.abspath(__file__)))
+        except OSError:
+            # If custom model doesn't exist, use the standard model
+            custom_nlp = nlp
 
         # Initialize instance variables
         self.__skills_file = skills_file
