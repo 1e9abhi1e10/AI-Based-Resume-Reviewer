@@ -35,6 +35,18 @@ except OSError:
     except Exception:
         pass
 
+# Patch spacy.load to avoid pyresparser trying to load a non-existent custom model path
+_orig_spacy_load = spacy.load
+def _safe_spacy_load(name, *args, **kwargs):
+    try:
+        # If pyresparser passes its package directory as a model path, fall back to en_core_web_sm
+        if isinstance(name, str) and 'pyresparser' in name and os.path.isdir(name):
+            return _orig_spacy_load('en_core_web_sm')
+        return _orig_spacy_load(name, *args, **kwargs)
+    except Exception:
+        return _orig_spacy_load('en_core_web_sm')
+spacy.load = _safe_spacy_load
+
 # libraries used to parse the pdf files
 from pdfminer.high_level import extract_text as pdf_extract_text
 from pyresparser.resume_parser import ResumeParser
