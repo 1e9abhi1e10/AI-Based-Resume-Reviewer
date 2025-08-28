@@ -18,6 +18,7 @@ import plotly.graph_objects as go
 from geopy.geocoders import Nominatim
 from streamlit_tags import st_tags
 import docx2txt
+import warnings
 
 # Ensure NLTK stopwords are present BEFORE importing pyresparser (which requires them at import time)
 import nltk
@@ -79,6 +80,18 @@ def pdf_reader(file):
 # Base paths (robust across local/cloud)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 LOGO_DIR = os.path.join(BASE_DIR, 'Logo')
+
+# Quieten known third-party noisy warnings (does not affect functionality)
+warnings.filterwarnings("ignore", "invalid escape sequence", module="geocoder.uscensus")
+
+# Cache logo bytes to avoid streamlit media re-fetch churn on reruns
+@st.cache_data
+def load_logo_bytes(path):
+    try:
+        with open(path, "rb") as f:
+            return f.read()
+    except Exception:
+        return None
 
 # show uploaded file path to view pdf_display using PDF.js-based viewer (works across Chrome/Brave)
 def show_pdf(file_path):
@@ -247,10 +260,10 @@ def run():
     """, unsafe_allow_html=True)
 
     # (Logo, Heading, Sidebar etc)
-    try:
-        img = Image.open(os.path.join(LOGO_DIR, 'Resume.jpeg'))
-        st.image(img)
-    except Exception:
+    logo_bytes = load_logo_bytes(os.path.join(LOGO_DIR, 'Resume.jpeg'))
+    if logo_bytes:
+        st.image(logo_bytes)
+    else:
         st.title("AI Based Resume Reviewer")
     st.sidebar.markdown("# Choose Something...")
     activities = ["User", "Feedback", "About", "Admin"]
