@@ -50,6 +50,8 @@ spacy.load = _safe_spacy_load
 # libraries used to parse the pdf files
 from pdfminer.high_level import extract_text as pdf_extract_text
 from pyresparser.resume_parser import ResumeParser
+import pyresparser.utils as pr_utils
+import pyresparser.constants as pr_cs
 from Courses import ds_course,web_course,android_course,ios_course,uiux_course,resume_videos,interview_videos
 
 
@@ -317,14 +319,21 @@ def run():
             import getpass
             dev_user = os.getenv('USER') or os.getenv('USERNAME') or getpass.getuser() or 'unknown'
         os_name_ver = platform.system() + " " + platform.release()
-        g = geocoder.ip('me')
-        latlong = g.latlng
-        geolocator = Nominatim(user_agent="http")
-        location = geolocator.reverse(latlong, language='en')
-        address = location.raw['address']
-        cityy = address.get('city', '')
-        statee = address.get('state', '')
-        countryy = address.get('country', '')  
+        # Best-effort geolocation (offline/cloud safe)
+        try:
+            g = geocoder.ip('me')
+            latlong = g.latlng if g and g.latlng else None
+        except Exception:
+            latlong = None
+        try:
+            geolocator = Nominatim(user_agent="resume-reviewer", timeout=3)
+            location = geolocator.reverse(latlong, language='en') if latlong else None
+            address = location.raw['address'] if location and location.raw else {}
+            cityy = address.get('city', '') or address.get('town', '') or address.get('village', '')
+            statee = address.get('state', '')
+            countryy = address.get('country', '')
+        except Exception:
+            cityy, statee, countryy = '', '', ''
         city = cityy
         state = statee
         country = countryy
@@ -396,6 +405,29 @@ def run():
                 st.info('DOCX uploaded. Preview is not shown; analysis will proceed below.')
 
             ### parsing and extracting whole resume 
+            # Temporary runtime patch: adjust pyresparser's spaCy Matcher signature for spaCy v3
+            try:
+                original_extract_name = pr_utils.extract_name
+                def _extract_name_compat(nlp_text, matcher=None):
+                    pattern = [pr_cs.NAME_PATTERN]
+                    if matcher is None:
+                        from spacy.matcher import Matcher
+                        matcher = Matcher(nlp_text.vocab)
+                    try:
+                        # spaCy v2 style (deprecated)
+                        matcher.add('NAME', None, *pattern)
+                    except TypeError:
+                        # spaCy v3 style
+                        matcher.add('NAME', pattern)
+                    matches = matcher(nlp_text)
+                    for _, start, end in matches:
+                        span = nlp_text[start:end]
+                        if 'name' not in span.text.lower():
+                            return span.text
+                pr_utils.extract_name = _extract_name_compat
+            except Exception:
+                pass
+
             resume_data = ResumeParser(save_image_path).get_extracted_data()
             if resume_data:
                 
