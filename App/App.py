@@ -75,12 +75,32 @@ def pdf_reader(file):
         return ''
 
 
-# show uploaded file path to view pdf_display
+# Base paths (robust across local/cloud)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+LOGO_DIR = os.path.join(BASE_DIR, 'Logo')
+
+# show uploaded file path to view pdf_display with fallbacks for strict browsers
 def show_pdf(file_path):
-    with open(file_path, "rb") as f:
-        base64_pdf = base64.b64encode(f.read()).decode('utf-8')
-    pdf_display = F'<iframe src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf"></iframe>'
-    st.markdown(pdf_display, unsafe_allow_html=True)
+    try:
+        with open(file_path, "rb") as f:
+            pdf_bytes = f.read()
+        base64_pdf = base64.b64encode(pdf_bytes).decode('utf-8')
+        # Try embed (may be blocked by some browsers)
+        html = f"""
+        <embed src="data:application/pdf;base64,{base64_pdf}#view=FitH" 
+               type="application/pdf" width="100%" height="800px" />
+        """
+        st.components.v1.html(html, height=820)
+        # Always offer download as a fallback
+        st.download_button("Download PDF", data=pdf_bytes, file_name=os.path.basename(file_path), mime="application/pdf")
+        st.caption("If the preview is blocked by your browser (e.g., Brave Shields), use the Download button above to open locally.")
+    except Exception:
+        st.info("Unable to preview PDF inline. Use the Download button to view it.")
+        try:
+            with open(file_path, "rb") as f:
+                st.download_button("Download PDF", data=f.read(), file_name=os.path.basename(file_path), mime="application/pdf")
+        except Exception:
+            pass
 
 
 # read resume text for pdf/docx
@@ -161,7 +181,7 @@ def insertf_data(feed_name,feed_email,feed_score,comments,Timestamp):
 
 st.set_page_config(
    page_title="AI Based Resume Reviewer",
-   page_icon='./Logo/Recommend.png',
+   page_icon=os.path.join(LOGO_DIR, 'Recommend.png'),
 )
 
 
@@ -235,9 +255,9 @@ def run():
 
     # (Logo, Heading, Sidebar etc)
     try:
-        img = Image.open('./Logo/Resume.jpeg')
+        img = Image.open(os.path.join(LOGO_DIR, 'Resume.jpeg'))
         st.image(img)
-    except FileNotFoundError:
+    except Exception:
         st.title("AI Based Resume Reviewer")
     st.sidebar.markdown("# Choose Something...")
     activities = ["User", "Feedback", "About", "Admin"]
