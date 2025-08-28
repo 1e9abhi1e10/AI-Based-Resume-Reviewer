@@ -16,18 +16,25 @@ import plotly.express as px # to create visualisations at the admin session
 import plotly.graph_objects as go
 from geopy.geocoders import Nominatim
 # libraries used to parse the pdf files
-from pyresparser import ResumeParser
-from pdfminer3.layout import LAParams, LTTextBox
-from pdfminer3.pdfpage import PDFPage
-from pdfminer3.pdfinterp import PDFResourceManager
-from pdfminer3.pdfinterp import PDFPageInterpreter
-from pdfminer3.converter import TextConverter
+from pyresparser.resume_parser import ResumeParser
+from pdfminer.high_level import extract_text as pdf_extract_text
 from streamlit_tags import st_tags
 from PIL import Image
+import spacy
+from spacy.cli import download as spacy_download
 # pre stored data for prediction purposes
 from Courses import ds_course,web_course,android_course,ios_course,uiux_course,resume_videos,interview_videos
 import nltk
-nltk.download('stopwords')
+nlkt_dl_ok = nltk.download('stopwords')
+
+# Ensure spaCy model is available on first run / cloud
+try:
+    spacy.load('en_core_web_sm')
+except OSError:
+    try:
+        spacy_download('en_core_web_sm')
+    except Exception:
+        pass
 from nltk.corpus import stopwords
 import re
 import docx2txt
@@ -47,22 +54,10 @@ def get_csv_download_link(df,filename,text):
 
 # Reads Pdf file and check_extractable
 def pdf_reader(file):
-    resource_manager = PDFResourceManager()
-    fake_file_handle = io.StringIO()
-    converter = TextConverter(resource_manager, fake_file_handle, laparams=LAParams())
-    page_interpreter = PDFPageInterpreter(resource_manager, converter)
-    with open(file, 'rb') as fh:
-        for page in PDFPage.get_pages(fh,
-                                      caching=True,
-                                      check_extractable=True):
-            page_interpreter.process_page(page)
-            print(page)
-        text = fake_file_handle.getvalue()
-
-    ## close open handles
-    converter.close()
-    fake_file_handle.close()
-    return text
+    try:
+        return pdf_extract_text(file) or ''
+    except Exception:
+        return ''
 
 
 # show uploaded file path to view pdf_display
