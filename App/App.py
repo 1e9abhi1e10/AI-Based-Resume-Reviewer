@@ -11,22 +11,22 @@ import platform
 import geocoder
 import secrets
 import io,random
+import re
+from PIL import Image
 import plotly.express as px # to create visualisations at the admin session
 import plotly.graph_objects as go
 from geopy.geocoders import Nominatim
-# libraries used to parse the pdf files
-from pyresparser.resume_parser import ResumeParser
-from pdfminer.high_level import extract_text as pdf_extract_text
 from streamlit_tags import st_tags
-from PIL import Image
+import docx2txt
+
+# Ensure NLTK stopwords are present BEFORE importing pyresparser (which requires them at import time)
+import nltk
+_ = nltk.download('stopwords', quiet=True)
+from nltk.corpus import stopwords
+
+# spaCy model bootstrap (used by pyresparser at runtime)
 import spacy
 from spacy.cli import download as spacy_download
-# pre stored data for prediction purposes
-from Courses import ds_course,web_course,android_course,ios_course,uiux_course,resume_videos,interview_videos
-import nltk
-nlkt_dl_ok = nltk.download('stopwords')
-
-# Ensure spaCy model is available on first run / cloud
 try:
     spacy.load('en_core_web_sm')
 except OSError:
@@ -34,9 +34,11 @@ except OSError:
         spacy_download('en_core_web_sm')
     except Exception:
         pass
-from nltk.corpus import stopwords
-import re
-import docx2txt
+
+# libraries used to parse the pdf files
+from pdfminer.high_level import extract_text as pdf_extract_text
+from pyresparser.resume_parser import ResumeParser
+from Courses import ds_course,web_course,android_course,ios_course,uiux_course,resume_videos,interview_videos
 
 
 ###### Preprocessing functions ######
